@@ -1,33 +1,40 @@
 FROM php:8.2-apache
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
-
-# Install system dependencies and PHP extensions required by Laravel
+# Install PHP extensions
 RUN apt-get update && apt-get install -y \
-    git curl zip unzip libzip-dev libpng-dev libonig-dev libxml2-dev libpq-dev \
-    && docker-php-ext-configure zip \
-    && docker-php-ext-install pdo pdo_mysql zip gd xml mbstring \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    git unzip zip libzip-dev libpng-dev libonig-dev libxml2-dev curl \
+    && docker-php-ext-install pdo_mysql zip gd mbstring xml
+
+# Enable Apache Rewrite Module
+RUN a2enmod rewrite
 
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy project files
+# Copy Laravel files
 COPY . .
 
-# Install Composer (copy from official Composer image)
+# Set permissions for Laravel
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Set correct Apache document root
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+
+# Override default Apache config
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
+
+# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Install Laravel dependencies without dev packages and optimize autoloader
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# Install PHP packages
+RUN composer install --no-dev --optimize-autoloader
 
-# Set ownership and permissions for Laravel storage and cache directories
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+# Laravel commands
+RUN php artisan config:cache \
+ && php artisan route:cache \
+ && php artisan view:cache \
+ && php artisan migrate --force
 
-# Expose port 80
-EXPOSE 80
-
-# Optional: Use this to run Apache in foreground (CMD is default in php:apache image)
-# CMD ["apache2-foreground"]
+# Add CA cert
+RUN mkdir -p /etc/ssl/certs
+COPY storage/certs/ca.pem /etc/ssl/certs/ca.pem

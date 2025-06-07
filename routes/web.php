@@ -16,3 +16,10 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/envtest', function () {
+    return [
+        'DB_HOST' => env('DB_HOST'),
+        'MYSQL_ATTR_SSL_CA' => env('MYSQL_ATTR_SSL_CA'),
+    ];
+});
