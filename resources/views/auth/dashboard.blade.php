@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
 <div class="container mt-4">
-    <h2>Dashboard with Map</h2>
+    <h2> Tracking Dashboard with Map</h2>
 
     <div id="map" style="height: 500px; width: 100%; border: 1px solid #ccc;"></div>
 </div>
